@@ -1,0 +1,171 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ServiceName
+  labels:
+    app: ServiceName
+    deployon: "dsr"  
+spec:
+  replicas: replace_replicas
+  selector:
+    matchLabels:
+      app: ServiceName
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: ServiceName
+        deployon: "dsr"
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - ServiceName
+              topologyKey: "kubernetes.io/hostname"
+      containers:
+      - image: image_to_be_deployed
+        imagePullPolicy: Always
+        name: ServiceName
+        ports:
+        - containerPort: 9300
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 9300
+          initialDelaySeconds: 120
+          periodSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 9300
+          initialDelaySeconds: 60
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "2"
+          limits:
+            memory: "2Gi"
+            cpu: "4"
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        env:
+          # APIGATEWAY URL
+          - name: APIGATEWAY_URL
+            valueFrom:
+              configMapKeyRef:
+                name: edireader-configmap
+                key: apigateway.url
+          - name: ENV_URL
+            valueFrom:
+              configMapKeyRef:
+                name: edireader-configmap
+                key: replace_logical_env.host.name
+
+          - name: JAEGER_COLLECTOR_URL
+            valueFrom:
+              configMapKeyRef:
+                name: edireader-configmap
+                key: jaeger.collector.url   
+                
+          - name: BOOTSTRAP_SERVER_URL
+            valueFrom:
+              configMapKeyRef:
+                name: edireader-configmap
+                key: replace_logical_env.kafka.bootstrap.server.url
+          - name: EDIREADER_INBOUND_KAFKA_TOPIC
+            valueFrom:
+              configMapKeyRef:
+                name: edireader-configmap
+                key: replace_logical_env.kafka.topic.inbound          
+          - name: EDIREADER_OUTBOUND_KAFKA_TOPIC
+            valueFrom:
+              configMapKeyRef:
+                name: edireader-configmap
+                key: replace_logical_env.kafka.topic.outbound         
+          - name: EDIREADER_APIGATEWAYANALYTICS_KAFKA_TOPIC
+            valueFrom:
+              configMapKeyRef:
+                name: edireader-configmap
+                key: replace_logical_env.kafka.analytic.topic
+          - name: EDIREADER_EDIANALYTICSDATA_URL
+            valueFrom:
+              configMapKeyRef:
+                name: edireader-configmap
+                key: ediAnalyticsDataUrl         
+          - name: EDIREADER_EDICONFIG_URL
+            valueFrom:
+              configMapKeyRef:
+                name: edireader-configmap
+                key: ediConfigUrl  
+          - name: KAFKA_SECURITY_PROTOCOL
+            valueFrom:
+              configMapKeyRef:
+                name: edireader-configmap
+                key: kafka.security.protocol
+          
+          - name : SSL_TRUSTSTORE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: kafka.broker.certs
+                key: keystore.pwd
+          - name : SSL_TRUSTSTORE_LOCATION
+            value: /etc/certs/kafka/kafka.broker.keystore.jks 
+        volumeMounts:
+          - mountPath: /etc/certs/kafka
+            name: certs
+            readOnly: true
+      volumes:
+        - name: certs
+          secret:
+            secretName: kafka.broker.certs
+                   
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: SvcName
+  labels:
+    app: ServiceName
+    k8s-app: edireader
+spec:
+  selector:
+    app: ServiceName
+  type: ClusterIP
+  ports:
+  - port: 9300
+    name: web
+    targetPort: 9300
+---
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler 
+metadata: 
+  name: edireader
+spec: 
+  maxReplicas: replace_maxReplicas
+  minReplicas: replace_minReplicas
+  scaleTargetRef: 
+    apiVersion: apps/v1 
+    kind: Deployment 
+    name: hpaSrvName
+  metrics: 
+  - type: Resource 
+    resource: 
+      name: cpu
+      targetAverageUtilization: 70

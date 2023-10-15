@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: edireader    #service name
+server:
+  port: 9300
+management:
+  endpoint:
+    health:
+      enabled: true
+      show-details: always

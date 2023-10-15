@@ -1,0 +1,14 @@
+spring:
+    boot:
+        admin:
+            client:
+                enabled: false
+
+logging:
+    level:
+        ROOT: ERROR
+        reactor.netty.http.client: DEBUG
+
+
+    
+    

@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: edireader    #service name
+  profiles:
+    active: test
+management:
+  health:
+    mongo:
+      enabled: true
+    db:
+      enabled: true
+  endpoint:
+    conditions:
+      cache:
+        time-to-live: 10000
+    health:
+      enabled: false
+      show-details: always

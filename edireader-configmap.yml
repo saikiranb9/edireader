@@ -1,0 +1,31 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: edireader-configmap
+  namespace: edi-platform
+data:
+  #Environment-agnostic configs
+  apigateway.url: http://apigateway:9093
+  ediConfigUrl: http://apigateway:9093/ediconfig/customer/%1$s/%2$s
+  ediAnalyticsDataUrl: http://apigateway:9093/edianalyticsdata/
+  jaeger.collector.url: "http://zipkin.monitoring.svc:9411"
+  kafka.security.protocol: SSL
+  kafka.max.request.size: "8728640"
+  #Develop  
+  dev.host.name: develop-edi.gcp.atd-us.com
+  dev.kafka.topic.inbound: DEDIREADER
+  dev.kafka.topic.outbound: DEDIMAPPER
+  dev.kafka.analytic.topic: DEDIAPIGATEWAYANALYTICS
+  dev.kafka.bootstrap.server.url: kafka-dev-2.gcp.atd-us.icd:31090
+  #QA
+  qa.host.name: r-qa-edi.gcp.atd-us.com
+  qa.kafka.topic.inbound: EDIREADER
+  qa.kafka.topic.outbound: EDIMAPPER
+  qa.kafka.analytic.topic: EDIAPIGATEWAYANALYTICS
+  qa.kafka.bootstrap.server.url: kafka-xat-2.gcp.atd-us.icd:31090
+  #Production
+  prod.host.name: prod-edi.gcp.atd-us.com
+  prod.kafka.topic.inbound: EDIREADER
+  prod.kafka.topic.outbound: EDIMAPPER
+  prod.kafka.analytic.topic: EDIAPIGATEWAYANALYTICS
+  prod.kafka.bootstrap.server.url: kafka-prod-msa-int-2.gcp.atd-us.icd:31090

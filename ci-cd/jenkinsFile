@@ -1,0 +1,187 @@
+#!/usr/bin/env groovy
+//*************************************************************************
+// File : jenkinsFile
+//
+// 12200 Herbert Wayne Ct.
+// Huntersville, NC 28078
+//
+// Copyright : Copyright 2020 American Tire Distributors, Inc.
+//
+// Author(s) : Cloud Engineer <CloudEngineer@ATD-US.com>
+//
+//
+// American Tire Distributors
+//***************************************************************************
+import hudson.model.Result
+import hudson.model.Run
+import jenkins.model.CauseOfInterruption.UserInterruption
+import jenkins.model.InterruptedBuildAction
+import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
+@Library(['sharedFunctions', 'notifications', 'cicd-shared']) _
+abortPreviousBuilds()
+if(env.Branch_Name == "master"){
+	dftNode="pmsadock01"
+} else {
+	dftNode="tmsadock01"
+}
+projectType="${JOB_NAME}".split("/")[0].trim().toLowerCase()
+jobName="${JOB_NAME}".split("/")[3].trim().toLowerCase()
+uProjectType=projectType.toUpperCase()
+serviceName="${JOB_NAME}".split("/")[2].trim()
+triggeredBy=whoami()
+repoPath="/${projectType}/${serviceName}.git"
+secretRepoPath="/amcc/mongosecrets.git"
+cicdFrameWork="/scmcicd/cicdframework.git"
+docker_repository="${nexus_docker_repo}"
+stepforBuildParallel=[:]
+buildResult=""
+node("${dftNode}"){
+	cleanup(env.Branch_Name)
+	stage('prep'){
+		echo "Branch_Name: ${Branch_Name}"
+		sh "pwd"
+		sh "rm -rf ./*"		
+	}
+}
+try{
+	node("${dftNode}"){
+		stage("Git Checkout"){
+			parallel(
+				'Service Branch Checkout': {
+					dir("${serviceName}"){
+						git branch: "${env.Branch_Name}", changelog: true, poll: false, url: "${env.scm_ssh}${repoPath}"
+						gitCommitHash = sh (script: "git log -n 1 --pretty=format:'%H'", returnStdout: true)
+						shortCommitHash = gitCommitHash.substring(0,7)
+						env.committer = sh(returnStdout: true, script: "git log -n 1 --pretty=format:'%cn'").trim()
+						buildResult="INPROGRESS"
+						stashUpdate(gitCommitHash,buildResult,"latest",env.BUILD_ID,shortCommitHash,env.BUILD_URL)
+					}
+				},
+				'MongoSecret Branch Checkout': {
+					dir("${serviceName}"){
+					  sh "git clone ${env.scm_ssh}${secretRepoPath} -b master"
+					  sh "git clone ${env.scm_ssh}${cicdFrameWork} -b master"
+					}	
+				}
+			)
+		}
+    try {
+    	stage("set variables for ${serviceName}"){
+    		dir("${serviceName}"){
+    			setVariables("ci-cd/${serviceName}.properties")
+    		}
+    		platformTypeList=convertToList(platformType)
+    		projectList=convertToList(project)
+    	}
+    	for(platformType in platformTypeList){
+    		for(project in projectList){
+    			stepforBuildParallel.put("Invoke build service for platform: ${platformType} and project: ${project}", buildService(project, platformType, "core"))
+    		}
+    	}
+    	try{
+    		parallel stepforBuildParallel
+            buildResult="SUCCESSFUL"
+            currentBuild.result = 'SUCCESS'
+    	} catch (Exception e) {
+		  echo "${e} \n"
+		  sh "exit 1"
+    	}
+		}catch(Exception e){
+			echo "${e} \n"
+			echo "inner catch"
+			buildResult="FAILED"
+			sh "exit 1"
+    }
+    if (buildResult=="SUCCESSFUL" && !env.Branch_Name.startsWith("hotfix")){
+      stage("update BuildStatus in stash"){
+        stashUpdate(gitCommitHash,buildResult,"latest",env.BUILD_ID,shortCommitHash,env.BUILD_URL)
+      }
+    }
+	}
+} catch(Exception e){
+  echo "${e} \n"
+  echo "in catch"
+  currentBuild.result = 'FAILURE'
+  buildResult="FAILED"
+  echo "currentBuild.result :${currentBuild.result}"
+  stashUpdate(gitCommitHash,buildResult,"latest",env.BUILD_ID,shortCommitHash,env.BUILD_URL)
+} 
+def cleanup(branchName) {
+  if (branchName=="master") {
+    daystoKeep="30" 
+  } else {
+    daystoKeep="10"
+  }
+  numtoKeep="10"
+  properties([
+    buildDiscarder(
+      logRotator(
+        artifactDaysToKeepStr: "${daystoKeep}",
+        artifactNumToKeepStr: "${numtoKeep}",
+        daysToKeepStr: "${daystoKeep}",
+        numToKeepStr: "${numtoKeep}"
+      )
+    )
+  ])
+}
+def setVariables(file){
+	try {
+		keyList=[]
+		def fileProps = readFile(file)
+		def fileRead = readFile(file).readLines()
+		Properties props = new Properties()
+		InputStream prop = new ByteArrayInputStream(fileProps.getBytes());
+		props.load(prop)
+		for (line in fileRead){
+			if (!line.startsWith("#")){
+				line=line.split("=")
+				keyList.add(line[0])
+			}
+		}
+		if (!keyList.isEmpty()){
+			for (key in keyList){
+				if (!props."${key}".equals("")){
+					this["${key}"]=props."${key}".trim()
+				}else{
+					this["${key}"]=props."${key}"
+				}
+			}
+		} else {
+			error("keylist is Empty: ${keyList}")
+		}
+	} catch (Exception e){
+		print(e)
+		buildResult="FAILED"
+		sh "exit 1"
+	}	
+}
+def buildService(project, platformType, slEnv){
+ return{
+  try{
+    LAST_SUCCESSFUL_COMMIT=fetchCommitHashWrapper(docker_repository,devops_image,"${workspace}",project,env.Branch_Name,serviceName,"core",platformType)
+    if (LAST_SUCCESSFUL_COMMIT != gitCommitHash) {
+      stage("insert build details ${project} - ${platformType}"){
+        insertBuildDetails("${devops_image}",project, projectType, env.Branch_Name, serviceName, jobName, env.BUILD_URL, env.BUILD_ID, "${workspace}", gitCommitHash, shortCommitHash, committer, dftNode , docker_repository , slEnv, buildResult, platformType, triggeredBy)    
+      }
+      build job: "${uProjectType}/services/${serviceName}/serviceBuild/build", propagate: true, wait: true,parameters:
+      [string(name: 'branchName', value: "${env.Branch_Name}"),
+      string(name: 'serviceName', value: "${serviceName}"),
+      string(name: 'project', value: "${project}"),
+      string(name: 'platformType', value: "${platformType}"),
+      string(name: 'dftNode', value: "${dftNode}"),
+      string(name: 'buildId', value: "${env.BUILD_ID}"),
+      string(name: 'slEnv', value: "${slEnv}")]
+    } else {
+      echo "${gitCommitHash} is already deployed successfully. Thus, build and deploy is not required"
+    }
+  } catch(Exception e){
+    echo "${e} \n"
+    echo "inner catch"
+    buildResult="FAILED"
+    stage("update BuildDetails ${project} - ${platformType}"){
+      insertBuildDetails("${devops_image}",project, projectType, env.Branch_Name, serviceName, jobName, env.BUILD_URL, env.BUILD_ID, "${workspace}", gitCommitHash, shortCommitHash, committer, dftNode , docker_repository ,"core", buildResult, platformType, triggeredBy) 
+    }
+    sh "exit 1"
+  }
+ }
+}

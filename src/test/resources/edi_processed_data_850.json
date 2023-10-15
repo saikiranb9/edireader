@@ -1,0 +1,164 @@
+{
+	"interchanges": [
+		{
+			"ISA_01_AuthorizationQualifier": "00",
+			"ISA_02_AuthorizationInformation": "          ",
+			"ISA_03_SecurityQualifier": "00",
+			"ISA_04_SecurityInformation": "          ",
+			"ISA_05_SenderQualifier": "01",
+			"ISA_06_SenderId": "085767000      ",
+			"ISA_07_ReceiverQualifier": "ZZ",
+			"ISA_08_ReceiverId": "Company        ",
+			"ISA_09_Date": "161206",
+			"ISA_10_Time": "2115",
+			"ISA_11_StandardsId": "U",
+			"ISA_12_Version": "00401",
+			"ISA_13_InterchangeControlNumber": "000005007",
+			"ISA_14_AcknowledgmentRequested": "0",
+			"ISA_15_TestIndicator": "P",
+			"functional_groups": [
+				{
+					"GS_01_FunctionalIdentifierCode": "PO",
+					"GS_02_ApplicationSenderCode": "085767338",
+					"GS_03_ApplicationReceiverCode": "Company",
+					"GS_04_Date": "20161206",
+					"GS_05_Time": "2115",
+					"GS_06_GroupControlNumber": "5007",
+					"GS_07_ResponsibleAgencyCode": "X",
+					"GS_08_Version": "004010",
+					"transactions": [
+						{
+							"ST_01_TransactionSetIdentifierCode": "850",
+							"ST_02_TransactionSetControlNumber": "0001",
+							"segments": [
+								{
+									"BEG_01": "00",
+									"BEG_02": "DS",
+									"BEG_03": "5907867",
+									"BEG_05": "20161206"
+								},
+								{
+									"CUR_01": "SN",
+									"CUR_02": "USD"
+								},
+								{
+									"REF_01": "8M",
+									"REF_02": "COMPANYB",
+									"REF_03": "ORIGIN"
+								},
+								{
+									"PER_01": "OC",
+									"PER_02": "Donna Person",
+									"PER_03": "TE",
+									"PER_04": "4255552515",
+									"PER_05": "FX",
+									"PER_06": "4255553875"
+								},
+								{
+									"FOB_01": "PP",
+									"FOB_02": "ZZ",
+									"FOB_03": "UPS Ground #442E1W"
+								},
+								{
+									"DTM_01": "010",
+									"DTM_02": "20161206"
+								},
+								{
+									"TD5_02": "2",
+									"TD5_03": "UPSN",
+									"TD5_05": "UPS Ground #442E2E",
+									"TD5_12": "SG"
+								},
+								{
+									"N9-3000_loop": [
+										{
+											"N9_01": "LI",
+											"N9_02": "TEXT"
+										},
+										{
+											"MSG_01": "If items are available for partial shipment, please contact companyA@trading.com for authorization prior to release"
+										}
+									]
+								},
+								{
+									"N1-4000_loop": [
+										{
+											"N1_01": "ST",
+											"N1_02": "Company Attn 41309514",
+											"N1_03": "92",
+											"N1_04": "0857673380000"
+										},
+										{
+											"N3_01": "1000 BABELWAY PL"
+										},
+										{
+											"N4_01": "CHICAGO",
+											"N4_02": "IL",
+											"N4_03": "60639-1030",
+											"N4_04": "US"
+										},
+										{
+											"PER_01": "ST",
+											"PER_02": "Sender",
+											"PER_03": "TE",
+											"PER_04": "7735555120"
+										}
+									]
+								},
+								{
+									"N1-4000_loop": [
+										{
+											"N1_01": "BT",
+											"N1_02": "CompanyA",
+											"N1_03": "92",
+											"N1_04": "0857673380000"
+										},
+										{
+											"N3_01": "1000 BABELWAY PL"
+										},
+										{
+											"N4_01": "City",
+											"N4_02": "UT",
+											"N4_03": "98034",
+											"N4_04": "US"
+										},
+										{
+											"PER_01": "IC",
+											"PER_02": "Donna Person",
+											"PER_03": "TE",
+											"PER_04": "4255552515"
+										}
+									]
+								},
+								{
+									"PO1-8000_loop": [
+										{
+											"PO1_01": "1",
+											"PO1_02": "1",
+											"PO1_03": "EA",
+											"PO1_04": "8.90",
+											"PO1_06": "VP",
+											"PO1_07": "32230538"
+										}
+									]
+								},
+								{
+									"CTT-9000_loop": [
+										{
+											"CTT_01": "1",
+											"CTT_02": "1"
+										},
+										{
+											"AMT_01": "TT",
+											"AMT_02": "8.90"
+										}
+									]
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	]
+}
